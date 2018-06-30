@@ -187,7 +187,7 @@ class WindowModel(NERModel):
             embeddings: tf.Tensor of shape (None, n_window_features*embed_size)
         """
         ### YOUR CODE HERE (!3-5 lines)
-        embedding = tf.constant(self.pretrained_embeddings)
+        embedding = tf.Variable(self.pretrained_embeddings)
         result = tf.nn.embedding_lookup(embedding, self.input_placeholder)
         embeddings = tf.reshape(result, [-1, self.config.n_window_features * self.config.embed_size])
         ### END YOUR CODE
@@ -230,7 +230,7 @@ class WindowModel(NERModel):
         b2 = tf.get_variable(name="b2", shape=[self.config.n_classes])
 
         h = tf.nn.relu(tf.matmul(x, W) + b1)
-        h_drop = tf.nn.dropout(h, self.dropout_placeholder)
+        h_drop = tf.nn.dropout(h, dropout_rate)
         h_dropU = tf.matmul(h_drop, U)
         pred = h_dropU + b2
         ### END YOUR CODE
