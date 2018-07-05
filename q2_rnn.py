@@ -207,8 +207,8 @@ class RNNModel(NERModel):
             embeddings: tf.Tensor of shape (None, max_length, n_features*embed_size)
         """
         ### YOUR CODE HERE (~4-6 lines)
-        embed = tf.variable(self.pretrained_embeddings)
-        lookup = tf.nn.embedding_lookup(self.pretrained_embeddings, embed)
+        embed = tf.Variable(self.pretrained_embeddings)
+        lookup = tf.nn.embedding_lookup(embed, self.input_placeholder)
         embeddings = tf.reshape(lookup, shape=[-1, self.max_length, Config.n_features * Config.embed_size])
         ### END YOUR CODE
         return embeddings
@@ -271,24 +271,26 @@ class RNNModel(NERModel):
         # Define U and b2 as variables.
         # Initialize state as vector of zeros.
         ### YOUR CODE HERE (~4-6 lines)
-        U = tf.get_variable(name="U", shape=(self.hidden_size, self.n_classes), initializer=tf.contrib.xavier_initializer())
-        b2 = tf.get_variable(name="b2", shape=(None, self.n_classes), initializer=tf.constant_initializer)
-        h = tf.zeros(shape=(None, self.hidden_size))
+        U = tf.get_variable(name="U", shape=(Config.hidden_size, Config.n_classes), initializer=tf.contrib.layers.xavier_initializer())
+        b2 = tf.get_variable(name="b2", shape=(Config.n_classes), initializer=tf.constant_initializer())
+        h = tf.zeros([tf.shape(x)[0], Config.hidden_size], tf.float32)
         ### END YOUR CODE
 
         with tf.variable_scope("RNN"):
             for time_step in range(self.max_length):
                 ### YOUR CODE HERE (~6-10 lines)
-                o_t, h = cell(x[:, time_step], h)
-                o_drop_t = tf.nn.dropout(o_t, self.dropout_placeholder)
+                o_t, h = cell(x[:, time_step, :], h)
+                o_drop_t = tf.nn.dropout(o_t, dropout_rate)
                 y_t = tf.matmul(o_drop_t, U) + b2
-                tf.get_variable_scope.reuse_variables()
-                logger.debug("y_t shape " + y_t.shape)
+                tf.get_variable_scope().reuse_variables()
                 preds.append(y_t)
                 ### END YOUR CODE
 
         # Make sure to reshape @preds here.
         ### YOUR CODE HERE (~2-4 lines)
+        logger.debug("max length: %s", self.max_length)
+        logger.debug("before reshape: preds shape: %s", len(preds))
+        logger.debug("item: %s", preds[0].shape)
         preds = tf.stack(preds, axis=1)
         ### END YOUR CODE
 
@@ -311,10 +313,10 @@ class RNNModel(NERModel):
             loss: A 0-d tensor (scalar)
         """
         ### YOUR CODE HERE (~2-4 lines)
-        ent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.labels_placeholder, logits=preds)
-        logger.debug("loss operation: ent size " + ent.shape)
-        logger.debug("loss operation: mask size " + self.mask_placeholder.shape)
-        loss = tf.reduce_mean(ent * self.mask_placeholder)
+        mask_logits = tf.boolean_mask(preds, self.mask_placeholder)
+        mask_labels = tf.boolean_mask(self.labels_placeholder, self.mask_placeholder)
+        ent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=mask_labels, logits=mask_logits)
+        loss = tf.reduce_mean(ent)
         ### END YOUR CODE
         return loss
 
