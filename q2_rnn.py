@@ -147,7 +147,7 @@ class RNNModel(NERModel):
         (Don't change the variable names)
         """
         ### YOUR CODE HERE (~4-6 lines)
-        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.max_length, self.n_features))
+        self.input_placeholder = tf.placeholder(tf.int32, shape=(None, self.max_length, Config.n_features))
         self.labels_placeholder = tf.placeholder(tf.int32, shape=(None, self.max_length))
         self.mask_placeholder = tf.placeholder(tf.bool, shape=(None, self.max_length))
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=())
@@ -209,7 +209,7 @@ class RNNModel(NERModel):
         ### YOUR CODE HERE (~4-6 lines)
         embed = tf.variable(self.pretrained_embeddings)
         lookup = tf.nn.embedding_lookup(self.pretrained_embeddings, embed)
-        embeddings = tf.reshape(lookup, shape=[-1, self.max_length, self.n_features * self.embed_size])
+        embeddings = tf.reshape(lookup, shape=[-1, self.max_length, Config.n_features * Config.embed_size])
         ### END YOUR CODE
         return embeddings
 
@@ -271,16 +271,25 @@ class RNNModel(NERModel):
         # Define U and b2 as variables.
         # Initialize state as vector of zeros.
         ### YOUR CODE HERE (~4-6 lines)
+        U = tf.get_variable(name="U", shape=(self.hidden_size, self.n_classes), initializer=tf.contrib.xavier_initializer())
+        b2 = tf.get_variable(name="b2", shape=(None, self.n_classes), initializer=tf.constant_initializer)
+        h = tf.zeros(shape=(None, self.hidden_size))
         ### END YOUR CODE
 
         with tf.variable_scope("RNN"):
             for time_step in range(self.max_length):
                 ### YOUR CODE HERE (~6-10 lines)
-                pass
+                o_t, h = cell(x[:, time_step], h)
+                o_drop_t = tf.nn.dropout(o_t, self.dropout_placeholder)
+                y_t = tf.matmul(o_drop_t, U) + b2
+                tf.get_variable_scope.reuse_variables()
+                logger.debug("y_t shape " + y_t.shape)
+                preds.append(y_t)
                 ### END YOUR CODE
 
         # Make sure to reshape @preds here.
         ### YOUR CODE HERE (~2-4 lines)
+        preds = tf.stack(preds, axis=1)
         ### END YOUR CODE
 
         assert preds.get_shape().as_list() == [None, self.max_length, self.config.n_classes], "predictions are not of the right shape. Expected {}, got {}".format([None, self.max_length, self.config.n_classes], preds.get_shape().as_list())
