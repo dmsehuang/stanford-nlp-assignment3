@@ -311,6 +311,10 @@ class RNNModel(NERModel):
             loss: A 0-d tensor (scalar)
         """
         ### YOUR CODE HERE (~2-4 lines)
+        ent = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.labels_placeholder, logits=preds)
+        logger.debug("loss operation: ent size " + ent.shape)
+        logger.debug("loss operation: mask size " + self.mask_placeholder.shape)
+        loss = tf.reduce_mean(ent * self.mask_placeholder)
         ### END YOUR CODE
         return loss
 
@@ -334,6 +338,7 @@ class RNNModel(NERModel):
             train_op: The Op for training.
         """
         ### YOUR CODE HERE (~1-2 lines)
+        train_op = tf.train.AdamOptimizer(Config.lr).minimize(loss)
         ### END YOUR CODE
         return train_op
 
