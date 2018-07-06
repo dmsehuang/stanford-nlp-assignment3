@@ -103,13 +103,15 @@ def pad_sequences(data, max_length):
 
     for sentence, labels in data:
         ### YOUR CODE HERE (~4-6 lines)
-        mask = [True] * len(sentence)
         diff = max_length - len(sentence)
+        ext_sentence = list(sentence)
+        ext_labels = list(labels)
+        mask = [True] * len(sentence)
         if diff > 0:
-            sentence.extend([zero_vector * diff])
-            labels.extend([zero_label] * diff)
+            ext_sentence.extend([zero_vector] * diff)
+            ext_labels.extend([zero_label] * diff)
             mask.extend([False] * diff)
-        ret.append((sentence[:max_length], labels[:max_length], mask[:max_length]))
+        ret.append((ext_sentence[:max_length], ext_labels[:max_length], mask[:max_length]))
         ### END YOUR CODE ###
     return ret
 
@@ -179,7 +181,7 @@ class RNNModel(NERModel):
         feed_dict = {
             self.input_placeholder : inputs_batch,
             self.mask_placeholder : mask_batch,
-            self.dropout_placeholder : dropout_rate
+            self.dropout_placeholder : dropout
         }
         if labels_batch is not None:
             feed_dict[self.labels_placeholder] = labels_batch
@@ -288,9 +290,6 @@ class RNNModel(NERModel):
 
         # Make sure to reshape @preds here.
         ### YOUR CODE HERE (~2-4 lines)
-        logger.debug("max length: %s", self.max_length)
-        logger.debug("before reshape: preds shape: %s", len(preds))
-        logger.debug("item: %s", preds[0].shape)
         preds = tf.stack(preds, axis=1)
         ### END YOUR CODE
 
